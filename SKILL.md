@@ -1,8 +1,8 @@
 ---
 name: repo-task-proof-loop
-description: Repo-local workflow skill for large coding tasks. Initializes .agent/tasks/TASK_ID artifacts, installs project-scoped Codex and Claude subagents, updates AGENTS.md plus the repo's Claude guide file with the workflow, and runs a spec-freeze → build → evidence → verify → fix loop with fresh-session verification.
+description: Repo-local workflow skill for large coding tasks. Initializes .agent/tasks/TASK_ID artifacts, installs project-scoped Codex, Claude Code, and OpenCode subagents, updates AGENTS.md plus the repo's Claude guide file with the workflow, and runs a spec-freeze → build → evidence → verify → fix loop with fresh-session verification.
 license: Apache-2.0
-compatibility: Skills-compatible coding agents. Integrates with Codex and Claude Code project-scoped subagents. Bundled scripts require Python 3.10+.
+compatibility: Skills-compatible coding agents. Integrates with Codex, Claude Code, and OpenCode project-scoped subagents. Bundled scripts require Python 3.10+.
 metadata:
   author: OpenAI
   version: "1.0.0"
@@ -20,7 +20,7 @@ When the examples below mention `scripts/task_loop.py`, that path is relative to
 
 1. Initializes a strict repo-local task folder under `.agent/tasks/<TASK_ID>/`
 2. Seeds or updates the required artifact files
-3. Installs project-scoped Codex and Claude subagent templates into `.codex/agents/` and `.claude/agents/`
+3. Installs project-scoped Codex, Claude Code, and OpenCode subagent templates into `.codex/agents/`, `.claude/agents/`, and `.opencode/agents/`
 4. Updates the repo-root `AGENTS.md` Codex baseline plus the repo's Claude guide file (`CLAUDE.md` or `.claude/CLAUDE.md`) with a managed block that explains the workflow
 5. Guides the agent through a strict loop:
    - spec freeze
@@ -87,6 +87,8 @@ For Claude Code, the initializer keeps its managed workflow block in the repo-ro
 
 In Claude Code, if `init` just wrote or refreshed `.claude/agents/*` during the current session, do not assume those updated agents are already available mid-session.
 
+For OpenCode, the initializer installs project-scoped workflow agents into `.opencode/agents/`. When you want a product-specific default, use `--install-subagents opencode --guides agents`.
+
 Treat `init` as a serial prerequisite. Never overlap it with `freeze`, `build`, `evidence`, `verify`, `fix`, `validate`, `status`, or child-agent spawning.
 
 ## Heavy-task default workflow
@@ -143,6 +145,7 @@ Codex pattern:
 - In Claude Code, prefer the installed project subagents from `.claude/agents/`, with descriptions written as proactive trigger conditions for the matching proof-loop phase. Claude's main session routes by the task request, subagent descriptions, and current context, so keep each phase prompt clear in natural language. Reuse the same builder child for the evidence step by default. Only run a fresh builder in evidence-only mode if the original builder session is unavailable or you intentionally discarded it. If `init` just refreshed `.claude/agents/*` during the current Claude session, fall back to the main thread or already-visible agents instead of assuming the refreshed ones are available immediately.
 - In Claude Code, keep the orchestration flat: main-session auto-delegation is fine, but the proof-loop workflow agents themselves are leaf roles. The parent session should own the proof-loop phase transitions instead of asking one custom task agent to spawn another.
 - In Claude Code, the canonical durable state is always the repo-local artifact set under `.agent/tasks/<TASK_ID>/`, especially `spec.md`, `evidence.md`, `evidence.json`, `verdict.json`, and `problems.md`.
+- In OpenCode, prefer the installed project subagents from `.opencode/agents/`. If the platform cannot continue the same builder child session for the evidence step, run a new builder subagent in evidence-only mode.
 - If subagents are unavailable, preserve the same role separation across separate sessions or clear mode changes in the current session.
 
 Use the exact role prompts from `references/COMMANDS.md`.

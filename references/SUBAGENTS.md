@@ -1,6 +1,6 @@
 # Subagent integration
 
-This skill installs project-scoped subagent templates for both Codex and Claude Code.
+This skill installs project-scoped subagent templates for Codex, Claude Code, and OpenCode.
 
 On the Codex side, these are custom agent TOML config layers, not a separate manifest format.
 
@@ -22,6 +22,15 @@ On the Codex side, these are custom agent TOML config layers, not a separate man
 .claude/agents/task-builder.md
 .claude/agents/task-verifier.md
 .claude/agents/task-fixer.md
+```
+
+### OpenCode
+
+```text
+.opencode/agents/task-spec-freezer.md
+.opencode/agents/task-builder.md
+.opencode/agents/task-verifier.md
+.opencode/agents/task-fixer.md
 ```
 
 The agent files are intentionally narrow and role-specific.
@@ -179,6 +188,18 @@ Run a fresh verifier pass for TASK_ID <TASK_ID> against the current codebase and
 For large tasks, prefer one workflow owner per role rather than handing the entire proof loop to one general-purpose child.
 Descriptions in the Claude agent templates should read as proactive trigger conditions so Claude can delegate more reliably. Prefer wording that starts with `Use proactively when...`.
 Keep the delegation flat. Main-session auto-delegation is the intended Claude path here; the workflow agents themselves are leaf roles, so the parent should orchestrate each role directly instead of asking one custom task agent to spawn another.
+
+## OpenCode invocation pattern
+
+Use the installed project agents from `.opencode/agents/`. The parent can explicitly select the named agent for the next step.
+
+Suggested shape:
+
+```text
+Use the `task-verifier` agent for TASK_ID <TASK_ID>. It must be a fresh verifier pass against the current codebase and must write verdict.json and, if needed, problems.md.
+```
+
+For large tasks, prefer one child per role rather than a single general-purpose child.
 
 ## Same-session evidence packing
 

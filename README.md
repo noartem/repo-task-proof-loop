@@ -8,7 +8,7 @@ This skill was built from [OpenClaw-RL: Train Any Agent Simply by Talking](https
 
 Repo Task Proof Loop is a repo-local workflow skill for non-trivial coding tasks.
 
-It creates a durable task folder under `.agent/tasks/<TASK_ID>/`, installs project-scoped Codex and Claude subagents, updates repo guidance, and drives a strict loop:
+It creates a durable task folder under `.agent/tasks/<TASK_ID>/`, installs project-scoped Codex, Claude Code, and OpenCode subagents, updates repo guidance, and drives a strict loop:
 
 `spec freeze -> build -> evidence -> fresh verify -> minimal fix -> fresh verify`
 
@@ -47,6 +47,12 @@ Inside the target repository:
   task-builder.md
   task-verifier.md
   task-fixer.md
+
+.opencode/agents/
+  task-spec-freezer.md
+  task-builder.md
+  task-verifier.md
+  task-fixer.md
 ```
 
 It also inserts managed workflow blocks into:
@@ -70,7 +76,13 @@ Install the skill as a project skill.
 .claude/skills/repo-task-proof-loop/
 ```
 
-If you use both tools on the same repository, install it in both locations or keep one canonical copy and sync it.
+### OpenCode
+
+```text
+.opencode/skills/repo-task-proof-loop/
+```
+
+If you use multiple supported tools on the same repository, install it in each location or keep one canonical copy and sync it.
 
 ## Quick Prompts
 
@@ -119,7 +131,13 @@ SKILL_PATH=.agents/skills/repo-task-proof-loop
 SKILL_PATH=.claude/skills/repo-task-proof-loop
 ```
 
-Initialize a task:
+### OpenCode example
+
+```bash
+SKILL_PATH=.opencode/skills/repo-task-proof-loop
+```
+
+### Initialize a task
 
 ```bash
 python3 "$SKILL_PATH/scripts/task_loop.py" init \
@@ -135,7 +153,15 @@ python3 "$SKILL_PATH/scripts/task_loop.py" init \
   --task-text "Implement auth hardening for session refresh and logout."
 ```
 
-Validate:
+Useful options:
+
+- `--guides auto|agents|claude|both|none`
+- `--install-subagents both|codex|claude|opencode|none`
+- `--force`
+
+Here, `both` keeps backward compatibility and installs all supported subagent sets.
+
+### Validate a task bundle
 
 ```bash
 python3 "$SKILL_PATH/scripts/task_loop.py" validate \
@@ -144,7 +170,7 @@ python3 "$SKILL_PATH/scripts/task_loop.py" validate \
 
 Run `validate` only after `init` completes. If it reports initialization in progress, wait and rerun.
 
-Status:
+### Show current task status
 
 ```bash
 python3 "$SKILL_PATH/scripts/task_loop.py" status \
@@ -156,10 +182,12 @@ Use `status` after `init` completes when you want stable task state. If it retur
 Useful options:
 
 - `--guides auto|agents|claude|both|none`
-- `--install-subagents both|codex|claude|none`
+- `--install-subagents both|codex|claude|opencode|none`
 - `--force`
 
 With `--guides auto`, the initializer preserves existing guide files, but it also ensures `CLAUDE.md` exists whenever Claude agents are being installed and `AGENTS.md` exists whenever Codex agents are being installed.
+
+Do not run `validate` or `status` in parallel with `init`.
 
 ## Validation
 

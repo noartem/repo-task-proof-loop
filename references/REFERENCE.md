@@ -23,7 +23,15 @@ Project skill:
 Personal skill:
 - `~/.claude/skills/repo-task-proof-loop/`
 
-The same skill directory can be reused in either product. The initialization script writes repo-local workflow files into the current repository, not into the skill directory.
+### OpenCode
+
+Project skill:
+- `.opencode/skills/repo-task-proof-loop/`
+
+Personal skill:
+- `~/.config/opencode/skills/repo-task-proof-loop/`
+
+The same skill directory can be reused in any supported product. The initialization script writes repo-local workflow files into the current repository, not into the skill directory.
 
 Claude Code note:
 - This skill manages its workflow block in the project-root `CLAUDE.md`.
@@ -56,6 +64,12 @@ The initializer also creates or refreshes these project-level integration files:
   task-fixer.toml
 
 .claude/agents/
+  task-spec-freezer.md
+  task-builder.md
+  task-verifier.md
+  task-fixer.md
+
+.opencode/agents/
   task-spec-freezer.md
   task-builder.md
   task-verifier.md
@@ -96,6 +110,12 @@ Seed the task from inline text:
 scripts/task_loop.py init --task-id my-task --task-text "Implement feature X"
 ```
 
+Recommended OpenCode-specific init:
+
+```bash
+scripts/task_loop.py init --task-id my-task --install-subagents opencode --guides agents
+```
+
 Control which guide files are created or updated:
 
 ```bash
@@ -116,8 +136,11 @@ Control which project subagent sets are installed:
 scripts/task_loop.py init --task-id my-task --install-subagents both
 scripts/task_loop.py init --task-id my-task --install-subagents codex
 scripts/task_loop.py init --task-id my-task --install-subagents claude
+scripts/task_loop.py init --task-id my-task --install-subagents opencode
 scripts/task_loop.py init --task-id my-task --install-subagents none
 ```
+
+`both` keeps backward compatibility and installs all supported subagent sets.
 
 ### Validate the artifact set
 

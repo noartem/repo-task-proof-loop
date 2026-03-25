@@ -17,7 +17,7 @@ python scripts/verify_package.py
 - a task-local init sentinel makes `validate` report initialization-in-progress instead of only a misleading missing-files failure when `init` is still active
 - `scripts/task_loop.py status --task-id demo-task` reports `init_in_progress: true` when the init sentinel is present
 - the expected repo-local artifacts are created under `.agent/tasks/demo-task/`
-- project-scoped subagent files are created under `.codex/agents/` and `.claude/agents/`
+- project-scoped subagent files are created under `.codex/agents/`, `.claude/agents/`, and `.opencode/agents/`
 - `AGENTS.md` and `CLAUDE.md` are created with managed workflow blocks
 - generated Codex agent files stay Codex-specific and do not tell Codex to read `CLAUDE.md`
 - generated Codex AGENTS guidance mentions the bounded `explorer` / `worker` fan-out path

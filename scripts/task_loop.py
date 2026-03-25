@@ -330,6 +330,23 @@ def install_claude_agents(repo_root: Path) -> list[str]:
     return written
 
 
+def install_opencode_agents(repo_root: Path) -> list[str]:
+    target_dir = repo_root / ".opencode" / "agents"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    for template_name in (
+        "task-spec-freezer.md.tmpl",
+        "task-builder.md.tmpl",
+        "task-verifier.md.tmpl",
+        "task-fixer.md.tmpl",
+    ):
+        content = (TEMPLATES_DIR / "opencode" / template_name).read_text(encoding="utf-8")
+        target = target_dir / template_name.replace(".tmpl", "")
+        target.write_text(content, encoding="utf-8")
+        written.append(str(target))
+    return written
+
+
 def update_guides(repo_root: Path, guides: str, install_subagents: str) -> dict[str, str]:
     actions: dict[str, str] = {}
     if guides == "none":
@@ -458,6 +475,8 @@ def cmd_init(args: argparse.Namespace) -> int:
             installed_agents.extend(install_codex_agents(repo_root))
         if args.install_subagents in {"both", "claude"}:
             installed_agents.extend(install_claude_agents(repo_root))
+        if args.install_subagents in {"both", "opencode"}:
+            installed_agents.extend(install_opencode_agents(repo_root))
 
         guide_actions = update_guides(repo_root, args.guides, args.install_subagents)
 
@@ -593,7 +612,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     init_parser.add_argument(
         "--install-subagents",
-        choices=["both", "codex", "claude", "none"],
+        choices=["both", "codex", "claude", "opencode", "none"],
         default="both",
         help="Which project-scoped subagent sets to install or refresh.",
     )

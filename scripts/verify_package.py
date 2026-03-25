@@ -176,6 +176,7 @@ def main() -> int:
             repo / ".agent" / "tasks" / "demo-task" / "raw" / "screenshot-1.png",
             repo / ".codex" / "agents" / "task-spec-freezer.toml",
             repo / ".claude" / "agents" / "task-spec-freezer.md",
+            repo / ".opencode" / "agents" / "task-spec-freezer.md",
             repo / "AGENTS.md",
             repo / "CLAUDE.md",
         ]
@@ -327,6 +328,32 @@ def main() -> int:
         if rule_marker not in guidance_spec:
             raise SystemExit("Expected seeded guidance to include nested .claude/rules/**/*.md files.")
 
+        fallback_repo = Path(tmp_dir) / "claude-fallback-repo"
+        fallback_repo.mkdir(parents=True)
+        run(["git", "init"], fallback_repo)
+        (fallback_repo / "CLAUDE.md").write_text("# Local guidance\n", encoding="utf-8")
+
+        run(
+            [
+                sys.executable,
+                str(task_loop),
+                "init",
+                "--task-id",
+                "demo-task",
+                "--task-text",
+                "Implement a demo task.",
+                "--guides",
+                "auto",
+                "--install-subagents",
+                "opencode",
+            ],
+            fallback_repo,
+        )
+
+        fallback_claude = (fallback_repo / "CLAUDE.md").read_text(encoding="utf-8")
+        if ".opencode/agents/task-spec-freezer.md" not in fallback_claude:
+            raise SystemExit("CLAUDE.md fallback guidance must list OpenCode agents.")
+
         print(json.dumps(
             {
                 "skill_root": str(skill_root),
@@ -352,6 +379,10 @@ def main() -> int:
                 "guidance_seed_checks": {
                     "override_before_agents": True,
                     "nested_rule_detected": str(nested_rule),
+                },
+                "opencode_fallback_guides": {
+                    "claude_md": str(fallback_repo / "CLAUDE.md"),
+                    "contains_opencode_agents": True,
                 },
                 "codex_adaptive_orchestration_checks": {
                     "managed_agents_mentions_parallel_roles": True,
