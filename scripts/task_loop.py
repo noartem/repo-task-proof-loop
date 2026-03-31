@@ -40,6 +40,10 @@ PNG_PLACEHOLDER = (
 
 MANAGED_START = "<!-- repo-task-proof-loop:start -->"
 MANAGED_END = "<!-- repo-task-proof-loop:end -->"
+CLAUDE_GUIDE_CANDIDATES = (
+    Path("CLAUDE.md"),
+    Path(".claude") / "CLAUDE.md",
+)
 
 
 def utc_now_iso() -> str:
@@ -110,12 +114,27 @@ def path_chain(repo_root: Path, current: Path) -> list[Path]:
     return chain
 
 
+def guidance_candidates_for_directory(directory: Path) -> list[Path]:
+    candidates: list[Path] = []
+    for rel_path in (Path("AGENTS.md"), Path("CLAUDE.md"), Path(".claude") / "CLAUDE.md"):
+        candidate = directory / rel_path
+        if candidate.exists():
+            candidates.append(candidate)
+
+    rules_dir = directory / ".claude" / "rules"
+    if rules_dir.is_dir():
+        for candidate in sorted(rules_dir.glob("*.md")):
+            if candidate.is_file():
+                candidates.append(candidate)
+
+    return candidates
+
+
 def discover_guidance_files(repo_root: Path, current: Path) -> list[Path]:
     found: list[Path] = []
     seen: set[Path] = set()
     for directory in path_chain(repo_root, current):
-        for filename in ("AGENTS.md", "CLAUDE.md"):
-            candidate = directory / filename
+        for candidate in guidance_candidates_for_directory(directory):
             if candidate.exists():
                 resolved = candidate.resolve()
                 if resolved not in seen:
@@ -138,6 +157,13 @@ def render_template(text: str, mapping: dict[str, str]) -> str:
 
 def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def has_managed_block(path: Path) -> bool:
+    if not path.exists():
+        return False
+    content = path.read_text(encoding="utf-8")
+    return MANAGED_START in content and MANAGED_END in content
 
 
 def write_text_file(path: Path, content: str, *, force: bool = False) -> bool:
@@ -197,6 +223,18 @@ def guidance_bullets(repo_root: Path, current: Path) -> str:
     if not discovered:
         return "- None detected at init time."
     return "\n".join(f"- {relative_or_absolute(path, repo_root)}" for path in discovered)
+
+
+def choose_claude_guide_path(repo_root: Path) -> Path:
+    for rel_path in CLAUDE_GUIDE_CANDIDATES:
+        candidate = repo_root / rel_path
+        if has_managed_block(candidate):
+            return candidate
+    for rel_path in CLAUDE_GUIDE_CANDIDATES:
+        candidate = repo_root / rel_path
+        if candidate.exists():
+            return candidate
+    return repo_root / "CLAUDE.md"
 
 
 def template_context(task_id: str, repo_root: Path, current: Path, task_file: str | None, task_text: str | None) -> dict[str, str]:
@@ -270,25 +308,43 @@ def install_claude_agents(repo_root: Path) -> list[str]:
     return written
 
 
-def update_guides(repo_root: Path, guides: str) -> dict[str, str]:
+def update_guides(repo_root: Path, guides: str, install_subagents: str) -> dict[str, str]:
     actions: dict[str, str] = {}
-
-    guide_targets: list[tuple[Path, str]] = []
-    if guides in {"auto", "both", "agents"}:
-        guide_targets.append((repo_root / "AGENTS.md", load_text_template("managed-block-agents.md.tmpl")))
-    if guides in {"auto", "both", "claude"}:
-        guide_targets.append((repo_root / "CLAUDE.md", load_text_template("managed-block-claude.md.tmpl")))
-
-    if guides == "auto":
-        existing = [path for path, _ in guide_targets if path.exists()]
-        if existing:
-            guide_targets = [(path, template) for path, template in guide_targets if path.exists()]
-        else:
-            # Create both when nothing exists.
-            pass
-
     if guides == "none":
         return actions
+
+    agents_guide = repo_root / "AGENTS.md"
+    claude_guide = choose_claude_guide_path(repo_root)
+    existing_claude_guides = [
+        repo_root / rel_path
+        for rel_path in CLAUDE_GUIDE_CANDIDATES
+        if (repo_root / rel_path).exists()
+    ]
+
+    want_codex = install_subagents in {"both", "codex"}
+    want_claude = install_subagents in {"both", "claude"}
+
+    include_agents = guides in {"both", "agents"}
+    include_claude = guides in {"both", "claude"}
+
+    if guides == "auto":
+        include_agents = agents_guide.exists()
+        include_claude = bool(existing_claude_guides)
+
+        if want_codex and not include_agents:
+            include_agents = True
+        if want_claude and not include_claude:
+            include_claude = True
+
+        if not include_agents and not include_claude:
+            include_agents = True
+            include_claude = True
+
+    guide_targets: list[tuple[Path, str]] = []
+    if include_agents:
+        guide_targets.append((agents_guide, load_text_template("managed-block-agents.md.tmpl")))
+    if include_claude:
+        guide_targets.append((claude_guide, load_text_template("managed-block-claude.md.tmpl")))
 
     for path, template in guide_targets:
         action = upsert_managed_block(path, template)
@@ -380,7 +436,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     if args.install_subagents in {"both", "claude"}:
         installed_agents.extend(install_claude_agents(repo_root))
 
-    guide_actions = update_guides(repo_root, args.guides)
+    guide_actions = update_guides(repo_root, args.guides, args.install_subagents)
 
     result = {
         "repo_root": str(repo_root),

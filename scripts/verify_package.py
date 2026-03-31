@@ -121,6 +121,52 @@ def main() -> int:
             if not path.exists():
                 raise SystemExit(f"Expected path missing after init: {path}")
 
+        claude_auto_repo = Path(tmp_dir) / "claude-auto-repo"
+        claude_auto_repo.mkdir(parents=True)
+        run(["git", "init"], claude_auto_repo)
+        (claude_auto_repo / "AGENTS.md").write_text("# Existing AGENTS\n", encoding="utf-8")
+        run(
+            [
+                sys.executable,
+                str(task_loop),
+                "init",
+                "--task-id",
+                "demo-task",
+                "--task-text",
+                "Implement a demo task.",
+                "--guides",
+                "auto",
+                "--install-subagents",
+                "claude",
+            ],
+            claude_auto_repo,
+        )
+        if not (claude_auto_repo / "CLAUDE.md").exists():
+            raise SystemExit("Expected CLAUDE.md to be created for Claude installs in --guides auto mode.")
+
+        codex_auto_repo = Path(tmp_dir) / "codex-auto-repo"
+        codex_auto_repo.mkdir(parents=True)
+        run(["git", "init"], codex_auto_repo)
+        (codex_auto_repo / "CLAUDE.md").write_text("# Existing CLAUDE\n", encoding="utf-8")
+        run(
+            [
+                sys.executable,
+                str(task_loop),
+                "init",
+                "--task-id",
+                "demo-task",
+                "--task-text",
+                "Implement a demo task.",
+                "--guides",
+                "auto",
+                "--install-subagents",
+                "codex",
+            ],
+            codex_auto_repo,
+        )
+        if not (codex_auto_repo / "AGENTS.md").exists():
+            raise SystemExit("Expected AGENTS.md to be created for Codex installs in --guides auto mode.")
+
         print(json.dumps(
             {
                 "skill_root": str(skill_root),
@@ -128,6 +174,14 @@ def main() -> int:
                 "init_stdout": json.loads(init_result.stdout),
                 "validate_stdout": validate_json,
                 "status_stdout": json.loads(status_result.stdout),
+                "claude_auto_guides": {
+                    "agents_md": str(claude_auto_repo / "AGENTS.md"),
+                    "claude_md": str(claude_auto_repo / "CLAUDE.md"),
+                },
+                "codex_auto_guides": {
+                    "agents_md": str(codex_auto_repo / "AGENTS.md"),
+                    "claude_md": str(codex_auto_repo / "CLAUDE.md"),
+                },
                 "result": "PASS",
             },
             indent=2,

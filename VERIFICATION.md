@@ -17,6 +17,8 @@ python scripts/verify_package.py
 - the expected repo-local artifacts are created under `.agent/tasks/demo-task/`
 - project-scoped subagent files are created under `.codex/agents/` and `.claude/agents/`
 - `AGENTS.md` and `CLAUDE.md` are created with managed workflow blocks
+- `--guides auto --install-subagents claude` creates `CLAUDE.md` even if the repo previously only had `AGENTS.md`
+- `--guides auto --install-subagents codex` creates `AGENTS.md` even if the repo previously only had `CLAUDE.md`
 
 ## Last local result
 

@@ -119,6 +119,8 @@ Unzip or copy this directory to:
 
 If you use both tools on the same repository, install the skill in both locations or keep one canonical copy and sync it.
 
+If `scripts/task_loop.py init` creates or refreshes `.claude/agents/*` while Claude Code is already running, start a new Claude Code session before expecting those refreshed agents to appear. Use `/agents` to inspect available agents, and `claude --agent <name>` when you want to start a direct single-agent session on one role.
+
 ## Quick start
 
 1. Install the skill in your repository.
@@ -172,6 +174,8 @@ Useful options:
 - `--guides auto|agents|claude|both|none`
 - `--install-subagents both|codex|claude|none`
 - `--force`
+
+With `--guides auto`, the initializer preserves existing guide files, but it also ensures `CLAUDE.md` exists whenever Claude agents are being installed and `AGENTS.md` exists whenever Codex agents are being installed.
 
 ### Validate a task bundle
 
@@ -312,11 +316,13 @@ Spawn one `task-verifier` agent for TASK_ID <TASK_ID>. Wait for it. It must veri
 ### Claude Code
 
 Claude Code should use the installed project agents under `.claude/agents/`.
+After `init` writes or refreshes those files, start a new Claude Code session before relying on the updated agent list.
+Use `/agents` to inspect them, and use `claude --agent <name>` only for intentionally direct single-agent sessions.
 
 Example shape:
 
 ```text
-Use the `task-builder` agent for TASK_ID <TASK_ID> in BUILD mode. When implementation is done, keep the same child in EVIDENCE mode if possible.
+Use the `task-builder` agent for TASK_ID <TASK_ID> in BUILD mode. When implementation is done, keep the same child in EVIDENCE mode.
 ```
 
 ## Guardrails
@@ -358,7 +364,7 @@ This skill is designed to orchestrate subagent use, but actual subagent spawning
 
 - In Codex, the parent must explicitly request subagents.
 - In Claude Code, the parent should use the installed project agents.
-- If a platform cannot continue the same builder child into evidence mode, the workflow falls back to a second builder child in evidence-only mode.
+- In Claude Code, the default path is to resume the same builder child in evidence mode. Only fall back to a second builder child in evidence-only mode if the original builder session is gone or was intentionally discarded.
 
 The skill is honest about this boundary. It packages the workflow, role prompts, and repo-local conventions so the parent agent can execute the loop reliably.
 

@@ -90,6 +90,12 @@ Keep delegation depth flat. Use one child per role at a time.
 ## Claude Code invocation pattern
 
 Use the installed project subagents from `.claude/agents/`. The parent can either explicitly select the named agent or instruct Claude to use that agent for the next step.
+Because this skill writes agent files directly on disk, if `init` just created or refreshed `.claude/agents/*` during a running Claude Code session, run `/agents` or start a new session before relying on those updated agents.
+Treat these agents as explicitly selected workflow roles, not as opportunistic auto-delegates.
+Public Claude Code surfaces that matter here:
+
+- `/agents` to inspect the available agents
+- `claude --agent <name>` to start a direct single-agent session when you intentionally want the main thread to be that role
 
 Suggested shape:
 
@@ -98,6 +104,8 @@ Use the `task-verifier` agent for TASK_ID <TASK_ID>. It must be a fresh verifier
 ```
 
 For large tasks, prefer one child per role rather than a single general-purpose child.
+Descriptions in the Claude agent templates should read as trigger conditions so Claude can delegate more reliably. Prefer wording that starts with `Use this agent when...`.
+Keep the delegation flat. The parent should orchestrate each role directly instead of asking one custom task agent to spawn another.
 
 ## Same-session evidence packing
 
@@ -107,7 +115,7 @@ The preferred pattern is:
 2. Let it implement
 3. Continue with the same child in `EVIDENCE` mode
 
-If the platform cannot continue the same child session reliably, run a second `task-builder` child with an explicit `EVIDENCE-ONLY` prompt.
+In Claude Code, this same-session follow-up is the default path. Only run a second `task-builder` child with an explicit `EVIDENCE-ONLY` prompt if the original builder session is unavailable or you intentionally want a fresh evidence-only run.
 
 ## Why the roles stay separate
 

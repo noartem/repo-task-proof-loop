@@ -15,6 +15,7 @@ scripts/task_loop.py init --task-id <TASK_ID> [--task-file path/to/task.md | --t
 `init` is a serial prerequisite. Never overlap it with `freeze`, `build`, `evidence`, `verify`, `fix`, or child-agent spawning.
 
 After `init`, inspect `.agent/tasks/<TASK_ID>/spec.md` and confirm the repo-local structure is present.
+In Claude Code, if `init` just created or refreshed `.claude/agents/*` during a running session, start a new Claude Code session before asking Claude to use those updated agents. In that fresh session, confirm with `/agents`, or from a shell run `claude agents`.
 
 ## `freeze`
 
@@ -27,6 +28,8 @@ Read:
 - .agent/tasks/<TASK_ID>/spec.md
 - AGENTS.md if present
 - CLAUDE.md if present
+- .claude/CLAUDE.md if present
+- relevant .claude/rules/**/*.md files if present
 - any user-provided task file or inline task text
 - only the minimum relevant code needed to freeze the spec
 
@@ -55,6 +58,8 @@ Read:
 - .agent/tasks/<TASK_ID>/spec.md
 - AGENTS.md if present
 - CLAUDE.md if present
+- .claude/CLAUDE.md if present
+- relevant .claude/rules/**/*.md files if present
 
 Your job:
 - Implement the task against the frozen spec
@@ -72,7 +77,7 @@ Return to the parent with:
 
 ## `evidence`
 
-### Follow-up prompt to the same builder session when supported
+### Follow-up prompt to the same builder session
 
 ```text
 PACK EVIDENCE for TASK_ID <TASK_ID>.
@@ -106,7 +111,9 @@ Return only:
 - commands a fresh verifier should rerun
 ```
 
-### Fallback prompt when the platform cannot continue the same child session
+In Claude Code, this follow-up is the default path. Use the fallback below only if the original builder session is unavailable or you intentionally want a fresh evidence-only run.
+
+### Fallback prompt when the original builder session is unavailable
 
 ```text
 You are in EVIDENCE-ONLY mode for TASK_ID <TASK_ID>.
@@ -134,6 +141,7 @@ Read in this order:
 
 Then independently inspect the current codebase and rerun verification.
 Source of truth is the current repository state and current command results, not prior chat claims.
+Use the currently available verification surface directly. If browser or MCP tools are available and relevant, use them rather than narrowing yourself to code reading alone.
 
 Write:
 - .agent/tasks/<TASK_ID>/verdict.json
@@ -208,7 +216,7 @@ Run this sequence strictly in order. Do not batch or parallelize steps.
 2. wait for init to finish, then confirm .agent/tasks/<TASK_ID>/spec.md exists
 3. freeze <TASK_ID> using one spec-freezer child
 4. build <TASK_ID> using one builder child
-5. evidence <TASK_ID> in the same builder child when possible, otherwise in evidence-only mode
+5. evidence <TASK_ID> in the same builder child by default, otherwise in evidence-only mode
 6. verify <TASK_ID> using one fresh verifier child
 7. if verdict is PASS, stop
 8. if verdict is FAIL or UNKNOWN, run fix <TASK_ID> using one fresh fixer child
